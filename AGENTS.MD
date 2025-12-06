@@ -1,12 +1,3 @@
-# AGENTS.md
-
-> **SYSTEM CONTEXT: INFINITE TSUMEGO MINER**
-> *This file contains the immutable Source of Truth for this repository. All AI agents working here must align with these directives, architectural decisions, and mission parameters.*
-
-## 1. Mission Profile
-
-**Objective:** Construct an autonomous "Mining Rig" that generates infinite, high-quality Go (Weiqi/Baduk) tsumego puzzles.
-
 **End Goal:** These puzzles will power a separate consumer application ("The Game")—a visual novel/dating sim with meta-progression elements.
 
 **Core Philosophy:**
