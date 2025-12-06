@@ -2,36 +2,34 @@
 
 > **"We do not build the puzzles; we mine them from the chaos of high-temperature logic."**
 
-The **Infinite AI Tsumego Miner** is an autonomous "mining rig" that uses adversarial AI self-play to generate high-quality Go (Weiqi/Baduk) puzzles. 
+The **Infinite AI Tsumego Miner** is an autonomous "mining rig" that uses adversarial AI self-play to generate high-quality Go (Weiqi/Baduk) puzzles.
 
-Instead of randomly placing stones, it forces superhuman Neural Networks to play "drunkenly" (high temperature). When one agent blunders—turning a winning game into a losing one—the system freezes time, analyzes the state with a stricter "Referee" engine, and extracts a Tsumego puzzle where the goal is to punish that specific mistake.
+Instead of randomly placing stones, it orchestrates an **Arena** where superhuman Neural Networks play "drunkenly" (high temperature) against each other. When one agent blunders—turning a winning game into a losing one—the system freezes time, analyzes the state with a stricter **Referee** engine, and extracts a Tsumego puzzle where the goal is to punish that specific mistake.
 
 ## 🌟 Key Features
 
-* **Adversarial Generation:** Puzzles are derived from "natural" game shapes, not random noise.
-* **Dual-Engine Architecture:**
-    * **The Players:** High-temperature, creative, fast agents (simulating intuition).
-    * **The Referee:** Zero-temperature, high-playout agent (simulating deep calculation) for absolute truth.
-* **NetworkBench™:** Orchestrates matches between different "personalities" (e.g., *The Chameleon* (Human-SL) vs *The Veteran* (g170)) to maximize tactical variety.
-* **Rich Metadata:** Outputs JSON containing solution trees, difficulty grading (policy vs visits), and territory ownership maps.
-* **Headless Autonomy:** Designed to run indefinitely on a GPU server.
+*   **The Arena:** Automates matchmaking between 11+ distinct neural network "personalities" (e.g., *The Chameleon* vs *The Titan*).
+*   **Personality Profiles:** Every match features randomized **Temperature** (0.8-1.5) and **Visits** (20-300) settings, ensuring no two games are ever alike.
+*   **The Delta:** Puzzles are detected by a drop in winrate (e.g., 99% → 10%) as judged by the unrelated **High Referee** network.
+*   **Rich Metadata:** Puzzles include SGF SGFs, policy distributions, wrong-move refutations, and detailed difficulty metrics.
+*   **Headless Autonomy:** Designed to run indefinitely, mining thousands of puzzles per day on a consumer GPU.
 
-### 🏛️ System Architecture
+## 🏛️ System Architecture
 
 ```mermaid
 graph TD
     %% Nodes
     Orch[Match Orchestrator]
     Bench[NetworkBench]
-    Ref["The High Referee<br/>(KataGo b18 Zero)"]
+    Ref["The High Referee<br/>(KataGo b28)"]
     
-    subgraph "The Arena (High Temp Self-Play)"
-        P1["Player Black<br/>(Creative Agent)"]
-        P2["Player White<br/>(Creative Agent)"]
+    subgraph "The Arena (Randomized Self-Play)"
+        P1["Player Black<br/>(Random Personality)"]
+        P2["Player White<br/>(Random Personality)"]
     end
 
-    Dec{"Is Blunder?<br/>(Winrate Drop > 85%)"}
-    Output[Save Puzzle JSON]
+    Dec{"The Delta<br/>(Blunder?)"}
+    Output[Extract Puzzle]
 
     %% Styles
     style Ref fill:#f9f,stroke:#333,stroke-width:2px,color:black
@@ -41,7 +39,7 @@ graph TD
     %% Flow
     Orch -->|Initialize| Bench
     Orch -->|Summon| Ref
-    Bench -->|Select Agents| P1 & P2
+    Bench -->|Generate Personalities| P1 & P2
     
     P1 <-->|Game Loop| P2
     
@@ -50,21 +48,21 @@ graph TD
     
     Dec -->|No| P2
     Dec -->|YES| Output
-    Output -->|Reset Game| Orch
+    Output -->|SGF/JSON| Orch
 ```
 
 ## 🛠️ Prerequisites
 
-* **OS:** Linux (Recommended) or Windows (WSL2).
-* **Hardware:** NVIDIA GPU (RTX 3060 or better recommended). *Developed on RTX 4070.*
-* **Software:** Python 3.11+ (Tested with 3.11.9)
-* **Dependencies:** `numpy`
+*   **OS:** Windows 10/11 (Primary) or Linux.
+*   **Hardware:** NVIDIA GPU (RTX 3060 or better recommended). *Developed on RTX 4070.*
+*   **Software:** Python 3.11+.
+*   **Dependencies:** `numpy`
 
-## 📂 Installation & Setup
+## 📂 Installation
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/yourusername/Infinite_AI_Tsumego_Miner.git
+    git clone https://github.com/MachineKomi/Infinite_AI_Tsumego_Miner.git
     cd Infinite_AI_Tsumego_Miner
     ```
 
@@ -73,24 +71,12 @@ graph TD
     pip install -r requirements.txt
     ```
 
-3.  **Asset Setup (Crucial)**
-    You must download the KataGo binary and specific neural network models manually. Place them in the `assets/` directory structure as shown below:
-
-    ```text
-    infinite-tsumego-miner/
-    ├── assets/
-    │   ├── katago/
-    │   │   └── katago            # The executable binary (v1.15.0+)
-    │   └── models/
-    │       ├── referee.bin.gz    # Latest Strongest Model (b18)
-    │       ├── human.bin.gz      # Human-SL Model (b18c384nbt-humanv0)
-    │       └── vintage.bin.gz    # (Optional) Old g170 15-block model
-    ```
-
-    * **KataGo Binary:** [Download Releases](https://github.com/lightvector/KataGo/releases)
-    * **Referee Model:** [KataGo Training](https://katagotraining.org/) (Get the latest b18)
-    * **Human Model:** [Extra Networks](https://github.com/lightvector/KataGo/blob/master/docs/SupportedModels.md) (Look for `humanv0`)
-    * **Vintage Model:** [Training Archives](https://katagotraining.org/networks/) (Scroll down to `g170` run)
+3.  **Asset Setup (Required)**
+    This miner requires specific KataGo binaries and model files.
+    *   **KataGo:** Put the Windows OpenCL binary in `assets/katago/`.
+    *   **Models:** Download the required neural networks and place them in `assets/models/`.
+    
+    > 📄 **See `assets/models/README.md` for the exact list of required files and download links.**
 
 ## 🚀 Usage
 
@@ -98,47 +84,27 @@ To start the mining session:
 
 ```bash
 python src/miner.py
-````
-
-The system will:
-
-1.  Initialize the **NetworkBench** (load models).
-2.  Summon the **High Referee**.
-3.  Begin continuous 9x9 self-play matches.
-4.  Detect blunders (Winrate drop \> 85%).
-5.  Save valid puzzles to the `output/` directory.
-
-### Output Format
-
-Puzzles are saved as rich JSON files:
-
-```json
-{
-  "uuid": "puzzle_8f2a1c",
-  "puzzle_type": "life_and_death_blunder",
-  "generated_by": "The_Chameleon",
-  "solution": {
-    "correct_move": "C3",
-    "difficulty_metrics": {
-       "visits_to_solve": 450,
-       "policy_prior": 0.02
-    }
-  }
-}
 ```
+
+### CLI Options
+
+| Command | Description |
+|---------|-------------|
+| `python src/miner.py --dry-run` | Test connectivity to engines without playing games. |
+| `python src/miner.py --debug` | Enable verbose logging for debugging. |
+| `python src/miner.py --log-file mining.log` | output logs to a file. |
 
 ## 📚 Documentation
 
 For deep dives into the architecture and philosophy:
 
-  * **[AGENTS.md](AGENTS.md):** The "Source of Truth" for AI agents working in this repo.
-  * **[Implementation_Plan.md](Implementation_Plan.MD):** Technical blueprint and class structure.
-  * **[Approach_and_Principles.md](Approach_and_Principles.MD):** The "Blunder Hypothesis" and grading philosophy.
+*   **[AGENTS.MD](AGENTS.MD):** The "Source of Truth" for AI agents, including the Model Registry and Personality Profiles.
+*   **[assets/models/README.md](assets/models/README.md):** Detailed list of supported networks and their roles.
 
 ## ⚖️ License
 
 This project is licensed under the **GNU Affero General Public License v3 (AGPLv3)**.
-See [LICENSE](LICENSE.MD) for details.
+See [LICENSE](LICENSE) for details.
 
 -----
 
