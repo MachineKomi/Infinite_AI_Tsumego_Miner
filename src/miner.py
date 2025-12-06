@@ -6,7 +6,11 @@ from katago_wrapper import KataGoEngine
 from network_bench import NetworkBench
 
 # CONSTANTS
-KATAGO_BIN = "./assets/katago/katago"
+# CONSTANTS
+if os.name == 'nt':
+    KATAGO_BIN = "./assets/katago/katago.exe"
+else:
+    KATAGO_BIN = "./assets/katago/katago"
 MODEL_REFEREE = "./assets/models/referee.bin.gz"
 OUTPUT_DIR = "output"
 

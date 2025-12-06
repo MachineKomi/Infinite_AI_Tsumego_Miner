@@ -3,7 +3,10 @@ import random
 from katago_wrapper import KataGoEngine
 
 # Paths (Adjust if on Windows)
-KATAGO_BIN = "./assets/katago/katago" 
+if os.name == 'nt':
+    KATAGO_BIN = "./assets/katago/katago.exe"
+else:
+    KATAGO_BIN = "./assets/katago/katago" 
 MODEL_HUMAN = "./assets/models/human.bin.gz"
 MODEL_VINTAGE = "./assets/models/vintage.bin.gz"
 
