@@ -3,95 +3,155 @@
 > **SYSTEM CONTEXT: INFINITE TSUMEGO MINER**
 > *This file contains the immutable Source of Truth for this repository. All AI agents working here must align with these directives, architectural decisions, and mission parameters.*
 
-## 1\. Mission Profile
+## 1. Mission Profile
 
 **Objective:** Construct an autonomous "Mining Rig" that generates infinite, high-quality Go (Weiqi/Baduk) tsumego puzzles.
+
 **End Goal:** These puzzles will power a separate consumer application ("The Game")—a visual novel/dating sim with meta-progression elements.
+
 **Core Philosophy:**
 
   * **Quantity through Autonomy:** The system runs indefinitely without human intervention.
   * **Quality through Adversity:** Puzzles are born from "blunders" in chaotic, high-temperature self-play games, not random stone placement.
   * **Respect for Intelligence:** We treat our Neural Networks not as tools, but as a "Bench" of elite experts.
 
-## 2\. Architecture: "The Arena"
+---
+
+## 2. Architecture: "The Arena"
 
 The system utilizes a **Dual-Engine** approach to generate and validate puzzles.
 
 ### A. The Components
 
-1.  **`MatchOrchestrator` (`src/miner.py`)**: The conductor. It initializes the bench, pairs agents, and manages the game loop.
-2.  **`NetworkBench` (`src/network_bench.py`)**: A dignified roster of available Neural Agents (The Chameleon, The Veteran, etc.). It manages the "personalities" of the players.
-3.  **The High Referee (`STR_CONF_...b28`)**: The absolute source of truth. It does not play; it only analyzes. It uses high playouts (600+) and zero temperature to judge the "truth" of a board state.
-4.  **The Players**:
-    *   **The Chameleon (`humanv0`)**: Human-style intuition.
-    *   **The Veteran (`kata1-b6c96`)**: Lower Elo (484-3330) lightweight networks for variability.
-    *   **The Titan (`b60` / `b20`)**: Stronger sparring partners.
+1.  **`MatchOrchestrator` (`src/miner.py`)**: The conductor. Initializes the bench, pairs agents, manages the game loop, and extracts puzzles.
+2.  **`NetworkBench` (`src/network_bench.py`)**: A dignified roster of available Neural Agents. Manages model discovery and matchmaking.
+3.  **`ModelRegistry` (`src/model_registry.py`)**: Central registry mapping actual filenames to meaningful aliases while preserving network lineage.
+4.  **`MiningLogger` (`src/logger.py`)**: Structured logging infrastructure for production runs.
 
-### B. The Pipeline
+### B. The Referee and Players
+
+| Alias | Role | Architecture | ELO | Description |
+|-------|------|--------------|-----|-------------|
+| **The_High_Referee** | Referee | b28c512nbt | 14079 | Strongest confidently-rated network. Absolute truth. |
+| **The_Chameleon** | Player | b18c384nbt | Variable | Human-SL model. Emulates 18k to 9d. |
+| **The_Specialist** | Player | b18c384nbt | N/A | 9x9 finetuned specialist. |
+| **The_Titan** | Player | b60c320 | 13504 | Large 60-block network. Very strong. |
+| **The_Veteran** | Player | b20c256x2 | 12520 | Classic "g170 era" style. |
+| **The_Apprentice** | Player | b6c96 | 9023 | Lightweight SDK-level. |
+| **The_Student** | Player | b6c96 | 3330 | DDK-level mistakes. |
+| **The_Beginner** | Player | b6c96 | 1530 | Weak DDK-level. |
+| **The_Novice** | Player | b6c96 | 484 | Very weak. Many blunders. |
+
+### C. The Pipeline
 
 1.  **Matchmaking:** Two agents are selected from the `NetworkBench`.
-2.  **Simulation:** They play a 9x9 game.
+2.  **Simulation:** They play a 9x9 game with high temperature (creative/error-prone).
 3.  **Blunder Detection (The "Delta"):**
-      * Before every move, the **Referee** judges the winrate ($W_{pre}$).
-      * The **Player** makes a move.
-      * The **Referee** judges the new winrate ($W_{post}$).
-      * **Trigger:** If ($W_{pre} > 95\%$) AND ($W_{post} < 10\%$), a **Puzzle** is detected.
-4.  **Extraction:** The game pauses. The state *before* the blunder is saved. The puzzle is: "Revert the blunder and find the winning path."
+    * Before every move, the **Referee** evaluates the position (winrate from current player's perspective).
+    * The **Player** makes a move.
+    * The **Referee** evaluates the new position.
+    * **Trigger:** If winrate drops from >90% to <15%, a **Puzzle** is detected.
+4.  **Extraction:** The game state *before* the blunder is saved. The puzzle is: "Find the correct move."
+5.  **Deduplication:** Position hash prevents duplicate puzzles.
+6.  **Export:** JSON + SGF files saved to `output/`.
 
-## 3\. Technical Implementation
+---
+
+## 3. Technical Implementation
 
 ### File Structure
 
 ```text
 Infinite_AI_Tsumego_Miner/
 ├── assets/
-│   ├── katago/                 # Binary (ignored by git)
-│   └── models/                 # .bin.gz weights (ignored by git)
+│   ├── katago/                 # Binary + DLLs (gitignored)
+│   │   └── README.md           # Setup instructions
+│   └── models/                 # .bin.gz weights (gitignored)
+│       └── README.md           # Model documentation
 ├── configs/
 │   ├── gen_config.cfg          # Player config (High Temp, Fast)
-│   ├── referee_config.cfg      # Referee config (Strict, Ownership=True)
-│   └── player_human.cfg        # Special config for HumanSL model
-├── output/                     # Generated JSON puzzles
+│   ├── referee_config.cfg      # Referee config (Zero Temp, Deep)
+│   └── player_human.cfg        # Special config for HumanSL
+├── output/                     # Generated puzzles (JSON + SGF)
+├── logs/                       # Log files (when --log-file enabled)
 ├── src/
+│   ├── __init__.py
 │   ├── miner.py                # Main loop (MatchOrchestrator)
 │   ├── network_bench.py        # Model management
-│   └── katago_wrapper.py       # Subprocess Interface
-└── AGENTS.md                   # This file
+│   ├── katago_wrapper.py       # Subprocess interface
+│   ├── model_registry.py       # Filename → Alias mapping
+│   └── logger.py               # Logging infrastructure
+├── AGENTS.md                   # This file
+├── README.MD                   # Project overview
+├── SETUP_WINDOWS.md            # Windows setup guide
+└── requirements.txt            # Python dependencies
 ```
 
 ### Key Python Classes
 
-  * **`KataGoEngine`**: Wrapper around `subprocess.Popen`. Handles JSON communication via `stdin`/`stdout`. **Crucial:** Must handle `overrideSettings` for the HumanSL model.
-  * **`NetworkBench`**: Factory that produces `NeuralAgent` instances.
-  * **`MatchOrchestrator`**: The main loop. Handles the "Referee Check" logic.
+  * **`KataGoEngine`**: Wrapper around `subprocess.Popen`. Handles JSON communication via `stdin`/`stdout`. Supports `overrideSettings` for HumanSL.
+  * **`NetworkBench`**: Factory that discovers models and produces `NeuralAgent` instances.
+  * **`NeuralAgent`**: Represents a single neural personality with tracked statistics.
+  * **`MatchOrchestrator`**: The main loop. Handles blunder detection, puzzle extraction, and deduplication.
 
-## 4\. Data Specification (Output)
+---
 
-Puzzles are saved as **JSON** files in `output/`. The consuming Game App expects this exact schema.
+## 4. Data Specification (Output)
+
+Puzzles are saved as **JSON** files in `output/`. The consuming Game App expects this schema.
+
+### Enhanced Schema (v2)
 
 ```json
 {
-  "uuid": "puzzle_8s8d9f",
-  "puzzle_type": "life_and_death_blunder",
+  "uuid": "a1b2c3d4",
+  "timestamp": "2025-12-06T15:30:00Z",
   "generated_by": "The_Chameleon",
-  "setup_moves": [ ["B", "C3"], ["W", "D4"] ... ], // Sequence to reach state
+  "puzzle_type": "life_and_death_blunder",
+  "board_size": 9,
+  
+  "setup_moves": [["B", "C3"], ["W", "D4"], ...],
   "color_to_play": "B",
+  
+  "blunder": {
+    "move": "E5",
+    "winrate_before": 0.95,
+    "winrate_after": 0.08,
+    "delta": 0.87
+  },
+  
   "solution": {
-    "correct_move": "E5",
+    "correct_move": "F6",
     "referee_winrate": 0.99,
+    "referee_visits": 600,
+    "policy_prior": 0.02,
     "difficulty_metrics": {
-       "visits_to_solve": 450, // Higher = Harder
-       "policy_prior": 0.02    // Lower = Harder (Blind spot)
+      "visits_to_solve": 600,
+      "policy_prior": 0.02
     }
   },
+  
+  "analysis": {
+    "policy_distribution": [
+      {"move": "F6", "policy": 0.02, "winrate": 0.99, "visits": 450},
+      {"move": "G5", "policy": 0.15, "winrate": 0.85, "visits": 100}
+    ],
+    "wrong_move_refutation": [
+      {"response": "H3", "winrate": 0.95}
+    ]
+  },
+  
   "metadata": {
-    "ownership": [ ... ], // Flattened 81-float array for Territory UI
-    "score_lead": 15.5
+    "ownership": [...],
+    "score_lead": 15.5,
+    "position_hash": "a1b2c3d4e5f6"
   }
 }
 ```
 
-## 5\. Configuration Reference
+---
+
+## 5. Configuration Reference
 
 ### The Players (`gen_config.cfg` / `player_human.cfg`)
 
@@ -105,39 +165,46 @@ Puzzles are saved as **JSON** files in `output/`. The consuming Game App expects
   * `maxVisits`: **600+** (Deep verification).
   * `includeOwnership`: **true** (Required for UI visualization).
 
-## 6\. Current Operational Status
+### Blunder Detection Thresholds
 
-  * **Repo:** Bootstrapped.
-  * **Phase:** Alpha Mining.
-  * **Next Priority:** Run the miner, generate the first 100 puzzles, and verify the "Blunder Threshold" (currently set to 0.85 delta).
+  * **Before:** Current player winrate must be > 90%
+  * **After:** Current player winrate must drop to < 15%
+  * These values are defined in `miner.py` constants.
 
-## 7\. LICENSE - GNU Affero General Public License v3.0
+---
 
-### Next Steps: Applying the License to our Code
+## 6. CLI Usage
 
-To be fully compliant, the AGPL requires us to add a notice to the start of each source file (e.g., `src/miner.py`, `src/network_bench.py`).
+```bash
+# Standard mining run
+python src/miner.py
 
-Add this header to the top of our Python files:
+# Test connectivity without mining
+python src/miner.py --dry-run
 
-```python
-"""
-Infinite AI Tsumego Miner
-Copyright (C) 2025 [Your Name]
+# Enable file logging
+python src/miner.py --log-file
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published
-by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
+# Debug mode (verbose output)
+python src/miner.py --debug
 ```
+
+---
+
+## 7. Current Operational Status
+
+  * **Repo:** Bootstrapped with comprehensive infrastructure.
+  * **Phase:** Ready for Alpha Mining.
+  * **Models:** 11 neural networks registered in the bench.
+  * **Next Priority:** Run `--dry-run` to verify setup, then begin puzzle generation.
+
+---
+
+## 8. License
+
+This project is licensed under the **GNU Affero General Public License v3 (AGPLv3)**.
+
+All source files include the AGPL header as required.
 
 -----
 
