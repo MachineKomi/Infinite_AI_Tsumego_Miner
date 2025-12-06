@@ -57,7 +57,7 @@ graph TD
 
 * **OS:** Linux (Recommended) or Windows (WSL2).
 * **Hardware:** NVIDIA GPU (RTX 3060 or better recommended). *Developed on RTX 4070.*
-* **Software:** Python 3.8+
+* **Software:** Python 3.11+ (Tested with 3.11.9)
 * **Dependencies:** `numpy`
 
 ## 📂 Installation & Setup

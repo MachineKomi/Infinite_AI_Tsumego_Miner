@@ -3,8 +3,8 @@
 Developing `Infinite_AI_Tsumego_Miner` on Windows is fully supported. Follow these steps to set up your environment.
 
 ## 1. Install Python
-We recommend **Python 3.10** or **3.11** for stability and compatibility.
-* [Download Python 3.11 for Windows](https://www.python.org/downloads/windows/)
+We recommend **Python 3.11.9** for stability and compatibility.
+* [Download Python 3.11.9 for Windows](https://www.python.org/downloads/release/python-3119/)
 
 ## 2. Install Dependencies
 Open a terminal (PowerShell or Command Prompt) in the project root:
@@ -15,9 +15,9 @@ pip install -r requirements.txt
 ## 3. Install KataGo (Critical)
 The mining rig requires the KataGo engine to function. On Windows, you need the executable.
 
-1.  Download the latest release from the [KataGo Releases Page](https://github.com/lightvector/KataGo/releases).
-    *   Look for `katago-v...-windows-x64-opencl.zip` (OpenCL is easiest to set up).
-    *   If you have a fast NVIDIA GPU and CUDA installed, you can use the `cuda` version for better performance, but OpenCL works on almost everything.
+1.  Download the latest release (v1.16.4) from the [KataGo Releases Page](https://github.com/lightvector/KataGo/releases).
+    *   **Recommended:** `katago-v1.16.4-opencl-windows-x64.zip` (Best compatibility).
+    *   *Alternative (if you have CUDA installed):* `katago-v1.16.4-cuda12.x-windows-x64.zip`
 2.  Extract the zip file.
 3.  Locate `katago.exe`.
 4.  Copy `katago.exe` (and any `.dll` files in that folder) to:
