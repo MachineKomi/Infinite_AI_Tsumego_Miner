@@ -2,7 +2,7 @@
 NetworkBench: A dignified assembly of neural networks available for consultation.
 
 This module manages the roster of available neural agents (players) and provides
-matchmaking functionality for adversarial self-play.
+matchmaking functionality with randomized strength/style parameters.
 
 Infinite AI Tsumego Miner
 Copyright (C) 2025
@@ -38,6 +38,44 @@ else:
 MODELS_DIR = "./assets/models"
 
 # =============================================================================
+# STYLE RANDOMIZATION PARAMETERS
+# These ranges define the "personality variance" for each match
+# =============================================================================
+
+# Temperature controls how "creative" vs "optimal" the agent plays
+# Higher = more variety/mistakes, Lower = more accurate
+TEMPERATURE_RANGE = {
+    "conservative": (0.8, 1.0),   # Play more accurately
+    "balanced": (1.0, 1.15),      # Normal creative play
+    "creative": (1.15, 1.3),      # Very exploratory
+    "chaotic": (1.3, 1.5),        # Maximum variety
+}
+
+# Visit count affects reading depth (and thus strength)
+# Lower visits = more intuitive/weaker, Higher = stronger
+VISITS_RANGE = {
+    "intuitive": (20, 40),        # Quick intuition, many mistakes
+    "casual": (40, 80),           # Light reading
+    "thoughtful": (80, 150),      # Moderate analysis
+    "deep": (150, 300),           # Deep reading (slower)
+}
+
+# Weighted distributions for random selection
+TEMPERATURE_WEIGHTS = {
+    "conservative": 10,
+    "balanced": 40,
+    "creative": 35,
+    "chaotic": 15,
+}
+
+VISITS_WEIGHTS = {
+    "intuitive": 25,
+    "casual": 40,
+    "thoughtful": 25,
+    "deep": 10,
+}
+
+# =============================================================================
 # HUMAN SL RANK DISTRIBUTION
 # Weighted distribution for human rank emulation
 # =============================================================================
@@ -59,11 +97,81 @@ HUMAN_RANK_WEIGHTS = {
 }
 
 
+def weighted_choice(options_dict):
+    """Select from a weighted dictionary."""
+    options = list(options_dict.keys())
+    weights = list(options_dict.values())
+    return random.choices(options, weights=weights, k=1)[0]
+
+
 def weighted_rank_choice():
     """Select a rank based on weighted distribution."""
-    ranks = list(HUMAN_RANK_WEIGHTS.keys())
-    weights = list(HUMAN_RANK_WEIGHTS.values())
-    return random.choices(ranks, weights=weights, k=1)[0]
+    return weighted_choice(HUMAN_RANK_WEIGHTS)
+
+
+def random_temperature():
+    """Select a random temperature from weighted style categories."""
+    style = weighted_choice(TEMPERATURE_WEIGHTS)
+    low, high = TEMPERATURE_RANGE[style]
+    temp = random.uniform(low, high)
+    return round(temp, 2), style
+
+
+def random_visits():
+    """Select a random visit count from weighted depth categories."""
+    depth = weighted_choice(VISITS_WEIGHTS)
+    low, high = VISITS_RANGE[depth]
+    visits = random.randint(low, high)
+    return visits, depth
+
+
+# =============================================================================
+# PERSONALITY PROFILE
+# =============================================================================
+
+class PersonalityProfile:
+    """
+    Represents the randomized "mood" of an agent for a particular game.
+    Generated fresh for each match to create variety.
+    """
+    
+    def __init__(self, agent_alias, is_human_sl=False):
+        self.agent_alias = agent_alias
+        self.is_human_sl = is_human_sl
+        
+        # Randomize temperature
+        self.temperature, self.temp_style = random_temperature()
+        
+        # Randomize visits
+        self.max_visits, self.depth_style = random_visits()
+        
+        # HumanSL rank (only used for HumanSL models)
+        self.human_rank = weighted_rank_choice() if is_human_sl else None
+    
+    def to_override_settings(self):
+        """
+        Convert this profile to KataGo override settings.
+        """
+        settings = {
+            "chosenMoveTemperature": self.temperature,
+            "maxVisits": self.max_visits,
+        }
+        
+        if self.is_human_sl and self.human_rank:
+            settings["humanSLProfile"] = self.human_rank
+        
+        return settings
+    
+    def describe(self):
+        """Human-readable description of this personality."""
+        parts = [f"temp={self.temperature} ({self.temp_style})",
+                 f"visits={self.max_visits} ({self.depth_style})"]
+        if self.human_rank:
+            parts.append(f"rank={self.human_rank}")
+        return ", ".join(parts)
+    
+    def __repr__(self):
+        return f"<Personality {self.agent_alias}: {self.describe()}>"
 
 
 # =============================================================================
@@ -83,16 +191,30 @@ class NeuralAgent:
         self.is_human_sl = is_human_sl
         self.games_played = 0
         self.blunders_made = 0
+        
+        # Current personality (generated per-match)
+        self.current_personality = None
+    
+    def generate_personality(self):
+        """
+        Generate a fresh randomized personality for a new match.
+        Call this at the start of each game.
+        """
+        self.current_personality = PersonalityProfile(
+            self.alias,
+            is_human_sl=self.is_human_sl
+        )
+        return self.current_personality
     
     def get_query_settings(self):
         """
-        Returns the JSON overrides for this agent's specific style/rank.
-        For HumanSL, randomly selects a rank to create variety.
+        Returns the JSON overrides for this agent's current personality.
+        If no personality is set, generates one.
         """
-        if self.is_human_sl:
-            chosen_rank = weighted_rank_choice()
-            return {"humanSLProfile": chosen_rank}
-        return {}
+        if self.current_personality is None:
+            self.generate_personality()
+        
+        return self.current_personality.to_override_settings()
     
     def record_blunder(self):
         """Record that this agent made a blunder."""
@@ -115,7 +237,8 @@ class NetworkBench:
     """
     A dignified assembly of neural networks available for consultation.
     
-    Manages model discovery, engine initialization, and matchmaking.
+    Manages model discovery, engine initialization, and matchmaking
+    with randomized strength/style parameters.
     """
     
     def __init__(self, models_dir=MODELS_DIR, katago_bin=KATAGO_BIN):
@@ -179,7 +302,11 @@ class NetworkBench:
     
     def select_matchup(self):
         """
-        Selects two agents from the roster to engage in a match.
+        Selects two agents from the roster and generates fresh personalities.
+        
+        This implements the "arena" concept:
+        1. Randomly select Black and White players from the roster
+        2. Generate randomized strength/style for each player
         
         Returns:
             Tuple of (black_agent, white_agent)
@@ -187,16 +314,27 @@ class NetworkBench:
         if len(self.roster) < 1:
             raise RuntimeError("No agents available in the NetworkBench!")
         
-        # If we only have one agent, it plays itself
-        p1 = random.choice(self.roster)
-        p2 = random.choice(self.roster)
+        # Randomly select players
+        black = random.choice(self.roster)
+        white = random.choice(self.roster)
+        
+        # Generate fresh personalities for this match
+        black_personality = black.generate_personality()
+        white_personality = white.generate_personality()
+        
+        # Log the matchup with personalities
+        self.logger.debug(
+            f"Matchup: {black.alias} (B) vs {white.alias} (W)"
+        )
+        self.logger.debug(f"  Black: {black_personality.describe()}")
+        self.logger.debug(f"  White: {white_personality.describe()}")
         
         # Record games
-        p1.record_game()
-        if p1 != p2:
-            p2.record_game()
+        black.record_game()
+        if black != white:
+            white.record_game()
         
-        return p1, p2
+        return black, white
     
     def get_agent_by_alias(self, alias):
         """Get a specific agent by alias."""
@@ -232,23 +370,28 @@ class NetworkBench:
 
 
 if __name__ == "__main__":
-    # Test the NetworkBench
+    # Test the NetworkBench with personality generation
     from logger import setup_logging
     import logging
     
     setup_logging(level=logging.DEBUG)
     
+    print("=== Personality Profile Test ===")
+    for _ in range(5):
+        profile = PersonalityProfile("TestAgent", is_human_sl=True)
+        print(f"  {profile.describe()}")
+        print(f"    -> {profile.to_override_settings()}")
+    
+    print("\n=== NetworkBench Test ===")
     bench = NetworkBench()
     bench.initialize()
     
-    print("\n=== Available Agents ===")
-    for agent in bench.roster:
-        print(f"  {agent}")
-    
-    print("\n=== Test Matchup ===")
     if bench.roster:
-        b, w = bench.select_matchup()
-        print(f"  Black: {b.alias}")
-        print(f"  White: {w.alias}")
+        print(f"\n=== Test Matchups ===")
+        for i in range(3):
+            b, w = bench.select_matchup()
+            print(f"  Game {i+1}: {b.alias} vs {w.alias}")
+            print(f"    Black: {b.current_personality.describe()}")
+            print(f"    White: {w.current_personality.describe()}")
     
     bench.shutdown()

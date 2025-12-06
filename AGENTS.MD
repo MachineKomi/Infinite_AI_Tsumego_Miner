@@ -55,6 +55,18 @@ The system utilizes a **Dual-Engine** approach to generate and validate puzzles.
 5.  **Deduplication:** Position hash prevents duplicate puzzles.
 6.  **Export:** JSON + SGF files saved to `output/`.
 
+### D. Arena Randomization ("Personality Profiles")
+
+Each match generates **fresh randomized parameters** for both Black and White players, creating maximum variety:
+
+| Parameter | Range | Weighted Categories |
+|-----------|-------|---------------------|
+| **Temperature** | 0.8 - 1.5 | Conservative (10%), Balanced (40%), Creative (35%), Chaotic (15%) |
+| **Max Visits** | 20 - 300 | Intuitive (25%), Casual (40%), Thoughtful (25%), Deep (10%) |
+| **HumanSL Rank** | 18k - 6d | SDK-weighted distribution (10k most common) |
+
+This means the same network can play at different "strength levels" across matches, and the puzzle output tracks which settings produced each blunder via `generator_settings`.
+
 ---
 
 ## 3. Technical Implementation

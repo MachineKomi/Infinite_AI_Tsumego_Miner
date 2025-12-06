@@ -363,6 +363,7 @@ class MatchOrchestrator:
                         referee_analysis=referee_analysis,
                         post_analysis=post_analysis,
                         agent_alias=current_agent.alias,
+                        agent_personality=current_agent.current_personality,
                         pre_winrate=pre_winrate,
                         post_winrate=post_current_winrate,
                     )
@@ -389,6 +390,7 @@ class MatchOrchestrator:
         referee_analysis,
         post_analysis,
         agent_alias,
+        agent_personality,
         pre_winrate,
         post_winrate,
     ):
@@ -430,6 +432,13 @@ class MatchOrchestrator:
             "uuid": puzzle_id,
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "generated_by": agent_alias,
+            "generator_settings": {
+                "temperature": agent_personality.temperature if agent_personality else None,
+                "max_visits": agent_personality.max_visits if agent_personality else None,
+                "temp_style": agent_personality.temp_style if agent_personality else None,
+                "depth_style": agent_personality.depth_style if agent_personality else None,
+                "human_rank": agent_personality.human_rank if agent_personality else None,
+            },
             "puzzle_type": "life_and_death_blunder",
             "board_size": 9,
             
