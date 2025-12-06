@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environments
+venv/
+env/
+
+# Binaries and Assets
+# We ignore the heavy binaries and weights, users must download them.
+assets/katago/*
+!assets/katago/.gitkeep
+!assets/katago/README.md
+assets/models/*.gz
+assets/models/*.bin
+assets/models/*.txt
+
+# Output
+output/
