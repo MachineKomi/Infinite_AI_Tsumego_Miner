@@ -8,7 +8,13 @@ We recommend **Python 3.11.9** for stability and compatibility.
 
 ## 2. Install Dependencies
 Open a terminal (PowerShell or Command Prompt) in the project root:
+
 ```powershell
+# Optional but recommended: Create a virtual environment
+python -m venv venv
+.\venv\Scripts\activate
+
+# Install requirements
 pip install -r requirements.txt
 ```
 

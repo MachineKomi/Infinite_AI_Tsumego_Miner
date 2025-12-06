@@ -21,8 +21,11 @@ The system utilizes a **Dual-Engine** approach to generate and validate puzzles.
 
 1.  **`MatchOrchestrator` (`src/miner.py`)**: The conductor. It initializes the bench, pairs agents, and manages the game loop.
 2.  **`NetworkBench` (`src/network_bench.py`)**: A dignified roster of available Neural Agents (The Chameleon, The Veteran, etc.). It manages the "personalities" of the players.
-3.  **The High Referee (KataGo `b18`)**: The absolute source of truth. It does not play; it only analyzes. It uses high playouts (600+) and zero temperature to judge the "truth" of a board state.
-4.  **The Players (KataGo `human_sl`, `g170`, etc.)**: The agents playing the actual game. They run at high temperature (`1.1` - `1.25`) and low visits (`50`) to simulate human intuition and induce creative tactical errors.
+3.  **The High Referee (`STR_CONF_...b28`)**: The absolute source of truth. It does not play; it only analyzes. It uses high playouts (600+) and zero temperature to judge the "truth" of a board state.
+4.  **The Players**:
+    *   **The Chameleon (`humanv0`)**: Human-style intuition.
+    *   **The Veteran (`kata1-b6c96`)**: Lower Elo (484-3330) lightweight networks for variability.
+    *   **The Titan (`b60` / `b20`)**: Stronger sparring partners.
 
 ### B. The Pipeline
 
