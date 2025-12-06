@@ -16,6 +16,43 @@ Instead of randomly placing stones, it forces superhuman Neural Networks to play
 * **Rich Metadata:** Outputs JSON containing solution trees, difficulty grading (policy vs visits), and territory ownership maps.
 * **Headless Autonomy:** Designed to run indefinitely on a GPU server.
 
+### 🏛️ System Architecture
+
+```mermaid
+graph TD
+    %% Nodes
+    Orch[Match Orchestrator]
+    Bench[NetworkBench]
+    Ref[The High Referee<br/>(KataGo b18 Zero)]
+    
+    subgraph "The Arena (High Temp Self-Play)"
+        P1[Player Black<br/>(Creative Agent)]
+        P2[Player White<br/>(Creative Agent)]
+    end
+
+    Dec{Is Blunder?<br/>(Winrate Drop > 85%)}
+    Output[Save Puzzle JSON]
+
+    %% Styles
+    style Ref fill:#f9f,stroke:#333,stroke-width:2px,color:black
+    style Output fill:#bbf,stroke:#333,stroke-width:2px,color:black
+    style Dec fill:#ff9,stroke:#333,stroke-width:2px,color:black
+
+    %% Flow
+    Orch -->|Initialize| Bench
+    Orch -->|Summon| Ref
+    Bench -->|Select Agents| P1 & P2
+    
+    P1 <-->|Game Loop| P2
+    
+    P1 -.->|Propose Move| Ref
+    Ref -->|Analyze State| Dec
+    
+    Dec -->|No| P2
+    Dec -->|YES| Output
+    Output -->|Reset Game| Orch
+```
+
 ## 🛠️ Prerequisites
 
 * **OS:** Linux (Recommended) or Windows (WSL2).
