@@ -4,7 +4,9 @@
 
 The **Infinite AI Tsumego Miner** is an autonomous "mining rig" that uses adversarial AI self-play to generate high-quality Go (Weiqi/Baduk) puzzles.
 
-Instead of randomly placing stones, it orchestrates an **Arena** where superhuman Neural Networks play "drunkenly" (high temperature) against each other. When one agent blunders—turning a winning game into a losing one—the system freezes time, analyzes the state with a stricter **Referee** engine, and extracts a Tsumego puzzle where the goal is to punish that specific mistake.
+Instead of randomly placing stones, it orchestrates an **Arena** where randomly selected superhuman Neural Networks play against each other with semi-randomized strength settings.
+
+By varying **temperature** (creativity), **visits** (search depth), and **playing style** for each match, the system creates an infinite variety of unique game states. When one agent blunders—turning a winning game into a losing one—the system freezes time, analyzes the state with a stricter **Referee** engine, and extracts a Tsumego puzzle where the goal is to punish that specific mistake.
 
 ## 🌟 Key Features
 
