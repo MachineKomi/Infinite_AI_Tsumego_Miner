@@ -20,8 +20,9 @@ The mining rig requires the KataGo engine to function. On Windows, you need the 
     *   *Alternative (if you have CUDA installed):* `katago-v1.16.4-cuda12.x-windows-x64.zip`
 2.  Extract the zip file.
 3.  Locate `katago.exe`.
-4.  Copy `katago.exe` (and any `.dll` files in that folder) to:
+4.  **CRITICAL:** Copy `katago.exe` **AND all `.dll` files** from that folder to:
     `C:\GameDev\Infinite_AI_Tsumego_Miner\assets\katago\`
+    *(The .exe will not run without the .dll files. You can ignore the .cfg and .pem files)*
 
 ## 4. Install Models
 You need two specific neural network weights files.
