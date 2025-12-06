@@ -23,14 +23,14 @@ graph TD
     %% Nodes
     Orch[Match Orchestrator]
     Bench[NetworkBench]
-    Ref[The High Referee<br/>(KataGo b18 Zero)]
+    Ref["The High Referee<br/>(KataGo b18 Zero)"]
     
     subgraph "The Arena (High Temp Self-Play)"
-        P1[Player Black<br/>(Creative Agent)]
-        P2[Player White<br/>(Creative Agent)]
+        P1["Player Black<br/>(Creative Agent)"]
+        P2["Player White<br/>(Creative Agent)"]
     end
 
-    Dec{Is Blunder?<br/>(Winrate Drop > 85%)}
+    Dec{"Is Blunder?<br/>(Winrate Drop > 85%)"}
     Output[Save Puzzle JSON]
 
     %% Styles
