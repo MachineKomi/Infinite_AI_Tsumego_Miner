@@ -96,6 +96,12 @@ python src/miner.py
 | `python src/miner.py --debug` | Enable verbose logging for debugging. |
 | `python src/miner.py --log-file mining.log` | output logs to a file. |
 
+### Joseki Mining
+To mine Joseki trees:
+```bash
+python src/joseki_miner.py
+```
+
 ## 📚 Documentation
 
 For deep dives into the architecture and philosophy:
